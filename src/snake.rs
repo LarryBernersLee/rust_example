@@ -1,17 +1,17 @@
+
 use std::collections::LinkedList;
-use piston_window::{Context, G2d};
+
+use piston_window::Context;
+use piston_window::G2d;
 use piston_window::types::Color;
 
-use crate::draw::draw_block;
+use crate::drawing::draw_block;
 
-const SNAKE_COLOR: Color = [0.00, 0.8, 0.00, 1.0];
+const SNAKE_COLOR: Color = [0.18, 0.80, 0.44, 1.0];
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
+    Up, Down, Left, Right
 }
 
 impl Direction {
@@ -20,43 +20,43 @@ impl Direction {
             Direction::Up => Direction::Down,
             Direction::Down => Direction::Up,
             Direction::Left => Direction::Right,
-            Direction::Right => Direction::Left,
+            Direction::Right => Direction::Left
         }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 struct Block {
     x: i32,
-    y: i32,
+    y: i32
 }
 
-pub struct Snake  {
-    direction: Direction,
+pub struct Snake {
+    moving_direction: Direction,
     body: LinkedList<Block>,
-    tail: Option<Block>,
+    last_removed_block: Option<Block>
 }
 
 impl Snake {
-    pub fn new(x: i32, y: i32) -> Self {
-        let mut body = LinkedList::new();
+    pub fn new(init_x: i32, init_y: i32) -> Snake {
+        let mut body: LinkedList<Block> = LinkedList::new();
         body.push_back(Block {
-            x: x + 2,
-            y,
+            x: init_x + 2,
+            y: init_y
         });
         body.push_back(Block {
-            x: x + 1,
-            y,
+            x: init_x + 1,
+            y: init_y
         });
         body.push_back(Block {
-            x,
-            y,
+            x: init_x,
+            y: init_y
         });
 
-        Self {
-            direction: Direction::Right,
-            body,
-            tail: None, 
+        Snake {
+            moving_direction: Direction::Right,
+            body: body,
+            last_removed_block: None
         }
     }
 
@@ -66,75 +66,84 @@ impl Snake {
         }
     }
 
-    pub fn head_position(&self) -> (i32, i32){
-        let head_block = self.body.front()?;
-        (head_block.x, head_block.y)
-    }
-
     pub fn move_forward(&mut self, dir: Option<Direction>) {
+        // Change moving direction
         match dir {
-            Some(d) => self.direction = d,
-            None => (),
+            Some(d) => self.moving_direction = d,
+            None => {}
         }
 
-        let (last_x, last_y) = self.head_position();
-        let new_block = match self.direction {
+        // Retrieve the position of the head block
+        let (last_x, last_y): (i32, i32) = self.head_position();
+
+        // The snake moves
+        let new_block = match self.moving_direction {
             Direction::Up => Block {
                 x: last_x,
-                y: last_y - 1,
+                y: last_y - 1
             },
             Direction::Down => Block {
                 x: last_x,
-                y: last_y + 1,
+                y: last_y + 1
             },
             Direction::Left => Block {
                 x: last_x - 1,
-                y: last_y,
+                y: last_y
             },
             Direction::Right => Block {
                 x: last_x + 1,
-                y: last_y,
-            },
+                y: last_y
+            }
         };
-
         self.body.push_front(new_block);
-        let remove_block = self.body.pop_back().unwrap();
-        self.tail = Some(remove_block);
+        let removed_blk = self.body.pop_back().unwrap();
+        self.last_removed_block = Some(removed_blk);
+    }
+
+    pub fn head_position(&self) -> (i32, i32) {
+        let head_block = self.body.front().unwrap();
+        (head_block.x, head_block.y)
     }
 
     pub fn head_direction(&self) -> Direction {
-        self.direction
+        self.moving_direction
     }
 
-    pub fn next_head(&self, dir: Option<Direction>) -> (i32, i32) {
-        let (head_x, head_y) = self.head_position();
-        let mut moveing_dir = self.direction;
+    pub fn next_head_position(&self, dir: Option<Direction>) -> (i32, i32) {
+        // Retrieve the position of the head block
+        let (head_x, head_y): (i32, i32) = self.head_position();
+
+        // Get moving direction
+        let mut moving_dir = self.moving_direction;
         match dir {
-            Some(d) => moveing_dir = d,
-            None => ()
+            Some(d) => moving_dir = d,
+            None => {}
         }
 
-        match moveing_dir {
+        // The snake moves
+        match moving_dir {
             Direction::Up => (head_x, head_y - 1),
-            Direction::Down => (head_y, head_y + 1),
+            Direction::Down => (head_x, head_y + 1),
             Direction::Left => (head_x - 1, head_y),
-            Direction::Right => (head_y + 1, head_y),
+            Direction::Right => (head_x + 1, head_y)
         }
     }
 
-    pub fn restore_tail(&mut self) {
-        let blk = self.tail.clone().unwrap();
+    pub fn restore_last_removed(&mut self) {
+        let blk = self.last_removed_block.clone().unwrap();
         self.body.push_back(blk);
     }
-    
-    pub fn overlap_tail(&self, x: i32, y: i32) -> bool {
-        let mut ch = 0;
-        for block in &self.block {
+
+    pub fn is_overlap_except_tail(&self, x: i32, y: i32) -> bool {
+        let mut checked = 0;
+        for block in &self.body {
             if x == block.x && y == block.y {
                 return true;
             }
-            ch += 1;
-            if ch == self.body.len() - 1 {
+
+            // For excluding the tail
+            checked += 1;
+            if checked == self.body.len() - 1 {
                 break;
             }
         }

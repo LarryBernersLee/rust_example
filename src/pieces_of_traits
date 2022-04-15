@@ -1,16 +1,17 @@
-/// 说明rust trait的相关信息
 fn main() {
     let lark = Lark;
-    lark.sing(); // lark sing
-    Singer::sing(&lark); // sing
+    lark.sing();
+    Singer::sing(&lark);
 
     // 使用trait object方式
     <dyn Bird>::sing(&lark); // 实现Bird trait的实例中查找所有sing方法，冲突了
     // 编译器知道实现Bird必然实现Singer, 可以在实例方法集中查找sing.
     // Bird自身无，却可以调用
-    Lark::version();   // lark SemVer
-    <Lark as Singer>::version(); // Lark上的Singer trait的verson关联方法。0.0.0
-    <Lark as Bird>::version();  // 0.0.1
+    /// <Lark as Bird>::unique(); Bird trait没有unique关联函数，无法调用。
+    /// 
+    Lark::version();
+    <Lark as Singer>::version();
+    <Lark as Bird>::version();
 }
 
 
@@ -21,11 +22,16 @@ fn main() {
 /// 5. 区分：1. 直接使用trait类型完成：trait::method(ref)方式
 ///         2. trait object方式。关心的是trait方法集。若trait方法集中trait方法命名相同，无法使用。
 /// 6. 关联函数、常数由类型调用；实例无法调用；
+/// 7. trait-object 使用是实例方式的使用，不可调用关联函数
+/// 8. trait-object v-table的方法会检查当前trait以及super trait的方法或函数; 对应函数指针指向的trait集合
+/// 9. 关联函数调用只关注自身trait上的方法
+/// 
+
 
 /// 最终方法集：
 ///----------------------------------------------------------
 ///  自身方法: version()关联函数、sing()方法
-/// 
+///
 /// trait集合方法
 /// Singer trait:  sing()方法、version()关联函数
 /// Bird trait: version()关联函数
@@ -38,6 +44,9 @@ trait Singer {
     }
     fn version() where Self: Sized {
         println!("0.0.0");
+    }
+    fn unique() where Self:Sized {
+        println!("unique");
     }
 }
 

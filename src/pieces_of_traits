@@ -1,0 +1,70 @@
+/// 说明rust trait的相关信息
+fn main() {
+    let lark = Lark;
+    lark.sing(); // lark sing
+    Singer::sing(&lark); // sing
+
+    // 使用trait object方式
+    <dyn Bird>::sing(&lark); // 实现Bird trait的实例中查找所有sing方法，冲突了
+    // 编译器知道实现Bird必然实现Singer, 可以在实例方法集中查找sing.
+    // Bird自身无，却可以调用
+    Lark::version();   // lark SemVer
+    <Lark as Singer>::version(); // Lark上的Singer trait的verson关联方法。0.0.0
+    <Lark as Bird>::version();  // 0.0.1
+}
+
+
+/// 1. trait类型是抽象类型，默认的方法、函数、常量只在实现没提供时给出；trait不会真实存在，不可视图预想trait会被调用
+/// 2. trait的继承A: B， 仅代表一种约束，实现A trait的类型必然实现B trait. A trait没有B trait定义的函数、方法、常量；
+/// 3. 类型方法集：自身方法/函数、A trait的方法或函数、B trait的方法或函数。
+/// 4. 类型自身方法或函数会遮蔽trait的方法或函数; trait A/B的方法或函数在一个方法集中确是平等的；
+/// 5. 区分：1. 直接使用trait类型完成：trait::method(ref)方式
+///         2. trait object方式。关心的是trait方法集。若trait方法集中trait方法命名相同，无法使用。
+/// 6. 关联函数、常数由类型调用；实例无法调用；
+
+/// 最终方法集：
+///----------------------------------------------------------
+///  自身方法: version()关联函数、sing()方法
+/// 
+/// trait集合方法
+/// Singer trait:  sing()方法、version()关联函数
+/// Bird trait:  sing()方法、version()关联函数
+/// ---------------------------------------------------------
+/// dyn Bird v-table中关注的是Bird以及Singer trait方法集。但是实例本身方法冲突了，无法直接调用。
+
+trait Singer {
+    fn sing(&self) {
+        println!("sing");
+    }
+    fn version() where Self: Sized {
+        println!("0.0.0");
+    }
+}
+
+// 一个实现了Bird trait的类型实现了Singer
+// Bird trait本身方法中没有sing方法。
+trait Bird: Singer {
+    // fn sing(&self) {
+    //     println!("bird");
+    // }
+    fn version() where Self: Sized {
+        println!("0.0.1");
+    }
+}
+
+
+#[derive(Debug, Default)]
+struct Lark;
+
+impl Lark {
+    fn sing(&self) {
+        println!("lark sing");
+    }
+    fn version() {
+        println!("lark SemVer");
+    }
+}
+
+impl Singer for Lark {}
+
+impl Bird for Lark {}

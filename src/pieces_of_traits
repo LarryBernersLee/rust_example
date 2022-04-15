@@ -28,7 +28,7 @@ fn main() {
 /// 
 /// trait集合方法
 /// Singer trait:  sing()方法、version()关联函数
-/// Bird trait:  sing()方法、version()关联函数
+/// Bird trait: version()关联函数
 /// ---------------------------------------------------------
 /// dyn Bird v-table中关注的是Bird以及Singer trait方法集。但是实例本身方法冲突了，无法直接调用。
 
